@@ -1,5 +1,3 @@
-import pkg from 'jspdf';
-const jsPDF = (pkg as any).default ?? pkg;
 import type { TimeEntry, Profile } from './database.types';
 
 const MONTH_NAMES_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
@@ -13,12 +11,14 @@ function minutesToTime(m: number): string {
   return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
 }
 
-export function generateMonthlyPDF(
+export async function generateMonthlyPDF(
   employee: Profile,
   entries: TimeEntry[],
   year: number,
   month: number
-): Uint8Array {
+): Promise<Uint8Array> {
+  const pkg = await import('jspdf');
+  const jsPDF = (pkg as any).default ?? pkg;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const pageW  = 210;

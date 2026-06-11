@@ -32,7 +32,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     .lt('date', monthEnd)
     .order('date', { ascending: true });
 
-  const pdfBytes = generateMonthlyPDF(employee, entries ?? [], year, month);
+  const pdfBytes = await generateMonthlyPDF(employee, entries ?? [], year, month);
 
   const MONTH_NAMES_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
   const filename = `Arbeitszeitnachweis_${employee.full_name.replace(/\s+/g, '_')}_${MONTH_NAMES_DE[month-1]}_${year}.pdf`;
