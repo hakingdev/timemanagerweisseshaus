@@ -1,0 +1,136 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import { requireAuth } from '../../lib/auth';
+
+const auth = await requireAuth(Astro.cookies, 'boss');
+if (!auth) return Astro.redirect('/login');
+
+const { profile, client } = auth;
+
+const now = new Date();
+const todayStr = now.toISOString().split('T')[0];
+
+const { data: allEmployees } = await client
+  .from('profiles').select('*').eq('role', 'employee').order('full_name');
+
+const active   = (allEmployees ?? []).filter(e => !e.archived);
+const archived = (allEmployees ?? []).filter(e => e.archived);
+
+const { data: todayEntries } = await client
+  .from('time_entries').select('employee_id, check_in, check_out').eq('date', todayStr);
+
+const checkedInIds = new Set(
+  (todayEntries ?? []).filter(e => e.check_in && !e.check_out).map(e => e.employee_id)
+);
+
+const now2 = new Date();
+const year  = parseInt(Astro.url.searchParams.get('year')  ?? String(now2.getFullYear()));
+const month = parseInt(Astro.url.searchParams.get('month') ?? String(now2.getMonth() + 1));
+
+const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const months = [1,2,3,4,5,6,7,8,9,10,11,12];
+const years  = [now2.getFullYear()-1, now2.getFullYear()];
+
+function fmtDate(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+---
+
+<MainLayout title="Chef-Bereich" user={profile}>
+  <div class="container">
+    <div class="page">
+      <div class="page__header">
+        <h1>Übersicht</h1>
+        <div class="month-filter">
+          <form method="GET">
+            <select name="month" onchange="this.form.submit()">
+              {months.map(m => <option value={m} selected={m === month}>{MONTH_NAMES[m-1]}</option>)}
+            </select>
+            <select name="year" onchange="this.form.submit()">
+              {years.map(y => <option value={y} selected={y === year}>{y}</option>)}
+            </select>
+          </form>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-card__label">Aktive Mitarbeiter</div>
+          <div class="stat-card__value">{active.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Heute anwesend</div>
+          <div class="stat-card__value">{checkedInIds.size}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Im Archiv</div>
+          <div class="stat-card__value">{archived.length}</div>
+        </div>
+      </div>
+
+      <!-- Active employees -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <h2 class="card__title">Mitarbeiter</h2>
+        {active.length > 0 ? (
+          <div class="employee-grid">
+            {active.map(emp => (
+              <div class="employee-card">
+                <div>
+                  <div class="employee-card__name">{emp.full_name}</div>
+                  <div class="employee-card__email">{emp.email}</div>
+                  <div style="font-size:.8125rem;color:#1565D8;margin-top:.2rem">📍 {emp.location ?? '—'}</div>
+                </div>
+                <div>
+                  {checkedInIds.has(emp.id)
+                    ? <span><span class="status-dot status-dot--green"></span>Anwesend</span>
+                    : <span><span class="status-dot status-dot--gray"></span>Abwesend</span>
+                  }
+                </div>
+                <div class="employee-card__actions">
+                  <a href={`/boss/employees/${emp.id}?year=${year}&month=${month}`} class="btn btn--outline btn--sm">Ansehen</a>
+                  <a href={`/admin/report?employee=${emp.id}&year=${year}&month=${month}`} class="btn btn--primary btn--sm">📄 PDF</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style="color:#6b7280;text-align:center;padding:2rem">Keine aktiven Mitarbeiter</p>
+        )}
+      </div>
+
+      <!-- Archive -->
+      {archived.length > 0 && (
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
+            <h2 class="card__title" style="margin:0">Archiv</h2>
+            <span class="badge badge--inactive">{archived.length}</span>
+            <span style="font-size:.8125rem;color:#6b7280;margin-left:auto">Gesetzlich aufbewahrt</span>
+          </div>
+          <div class="archive-grid">
+            {archived.map(emp => (
+              <div class="archive-card">
+                <div class="archive-card__top">
+                  <div>
+                    <div class="archive-card__name">{emp.full_name}</div>
+                    <div class="archive-card__email">{emp.email}</div>
+                  </div>
+                  <span class="badge badge--inactive">Archiviert</span>
+                </div>
+                <div class="archive-card__meta">
+                  <span>📍 {emp.location ?? '—'}</span>
+                  <span>Seit {fmtDate(emp.archived_at)}</span>
+                </div>
+                <div class="archive-card__actions">
+                  <a href={`/boss/employees/${emp.id}?year=${year}&month=${month}`} class="btn btn--outline btn--sm">Ansehen</a>
+                  <a href={`/admin/report?employee=${emp.id}&year=${year}&month=${month}`} class="btn btn--outline btn--sm">📄 PDF</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+</MainLayout>

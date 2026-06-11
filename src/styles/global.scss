@@ -295,6 +295,7 @@ table {
   letter-spacing: .02em;
 
   &--admin    { background: #EDE9FE; color: #5B21B6; }
+  &--boss     { background: #FEF3C7; color: #92400E; }
   &--employee { background: $blue-light; color: $blue-dark; }
   &--active   { background: #DCFCE7; color: #15803D; }
   &--inactive { background: $gray-100; color: $gray-500; }

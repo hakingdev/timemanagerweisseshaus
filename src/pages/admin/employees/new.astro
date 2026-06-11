@@ -30,6 +30,13 @@ const error = Astro.url.searchParams.get('error');
             <input type="email" id="email" name="email" required placeholder="max@firma.de" />
           </div>
           <div class="form-group">
+            <label for="role">Rolle</label>
+            <select id="role" name="role" required>
+              <option value="employee">Mitarbeiter</option>
+              <option value="boss">Chef (nur Ansicht)</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label for="location">Arbeitsstätte</label>
             <select id="location" name="location" required>
               {LOCATIONS.map(loc => (

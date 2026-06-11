@@ -16,9 +16,9 @@ export const DEMO_USERS: Record<string, { password: string; role: 'admin' | 'emp
 
 // Demo employees (shown in admin panel)
 export const DEMO_EMPLOYEES: Profile[] = [
-  { id: 'demo-emp-001', email: 'anna.mueller@weisseshaus.de', full_name: 'Anna Müller', role: 'employee', created_at: '2024-01-01' },
-  { id: 'demo-emp-002', email: 'klaus.schmidt@weisseshaus.de', full_name: 'Klaus Schmidt', role: 'employee', created_at: '2024-01-01' },
-  { id: 'demo-emp-003', email: 'maria.braun@weisseshaus.de', full_name: 'Maria Braun', role: 'employee', created_at: '2024-01-01' },
+  { id: 'demo-emp-001', email: 'anna.mueller@weisseshaus.de', full_name: 'Anna Müller', role: 'employee', location: 'Weisses Haus Hotel', archived: false, archived_at: null, created_at: '2024-01-01' },
+  { id: 'demo-emp-002', email: 'klaus.schmidt@weisseshaus.de', full_name: 'Klaus Schmidt', role: 'employee', location: 'Fass und Flamme', archived: false, archived_at: null, created_at: '2024-01-01' },
+  { id: 'demo-emp-003', email: 'maria.braun@weisseshaus.de', full_name: 'Maria Braun', role: 'employee', location: 'Weisses Haus Hotel', archived: false, archived_at: null, created_at: '2024-01-01' },
 ];
 
 export function getServerSupabase(cookies: AstroCookies) {
@@ -38,7 +38,7 @@ export function getServerSupabase(cookies: AstroCookies) {
   return client;
 }
 
-export async function requireAuth(cookies: AstroCookies, requiredRole?: 'admin' | 'employee') {
+export async function requireAuth(cookies: AstroCookies, requiredRole?: 'admin' | 'employee' | 'boss') {
   if (IS_DEMO) {
     const role = cookies.get('demo-role')?.value as 'admin' | 'employee' | undefined;
     const name = cookies.get('demo-name')?.value;
@@ -52,6 +52,8 @@ export async function requireAuth(cookies: AstroCookies, requiredRole?: 'admin' 
       email,
       full_name: name,
       role,
+      archived: false,
+      archived_at: null,
       created_at: new Date().toISOString(),
     };
 
@@ -61,13 +63,11 @@ export async function requireAuth(cookies: AstroCookies, requiredRole?: 'admin' 
   const accessToken = cookies.get('sb-access-token')?.value;
   if (!accessToken) return null;
 
-  // Use service role client to bypass RLS
   const adminClient = createClient<Database>(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
-  // Verify token is valid
   const { data: { user }, error } = await adminClient.auth.getUser(accessToken);
   if (error || !user) return null;
 
@@ -79,6 +79,7 @@ export async function requireAuth(cookies: AstroCookies, requiredRole?: 'admin' 
 
   if (!profile) return null;
   if (requiredRole === 'admin' && profile.role !== 'admin') return null;
+  if (requiredRole === 'boss'  && profile.role !== 'boss'  && profile.role !== 'admin') return null;
 
   return { user, profile, client: adminClient };
 }

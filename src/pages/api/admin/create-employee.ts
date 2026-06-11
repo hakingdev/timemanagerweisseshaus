@@ -12,6 +12,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const password = form.get('password')?.toString() ?? '';
   const full_name = form.get('full_name')?.toString().trim() ?? '';
   const location = form.get('location')?.toString() ?? 'Weisses Haus Hotel';
+  const role     = (form.get('role')?.toString() ?? 'employee') as 'employee' | 'boss';
 
   // Service role client to create users
   const adminClient = createClient<Database>(
@@ -33,7 +34,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     id: data.user.id,
     email,
     full_name,
-    role: 'employee',
+    role,
     location,
   });
 

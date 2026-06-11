@@ -1,0 +1,123 @@
+---
+import MainLayout from '../../../layouts/MainLayout.astro';
+import { requireAuth } from '../../../lib/auth';
+
+const auth = await requireAuth(Astro.cookies, 'boss');
+if (!auth) return Astro.redirect('/login');
+
+const { profile, client } = auth;
+const employeeId = Astro.params.id!;
+
+const { data: employee } = await client
+  .from('profiles').select('*').eq('id', employeeId).single();
+
+if (!employee) return Astro.redirect('/boss');
+
+const now = new Date();
+const year  = parseInt(Astro.url.searchParams.get('year')  ?? String(now.getFullYear()));
+const month = parseInt(Astro.url.searchParams.get('month') ?? String(now.getMonth() + 1));
+
+const monthStart = `${year}-${String(month).padStart(2,'0')}-01`;
+const nextMonth  = month === 12 ? 1 : month + 1;
+const nextYear   = month === 12 ? year + 1 : year;
+const monthEnd   = `${nextYear}-${String(nextMonth).padStart(2,'0')}-01`;
+
+const { data: entries } = await client
+  .from('time_entries').select('*')
+  .eq('employee_id', employeeId)
+  .gte('date', monthStart).lt('date', monthEnd)
+  .order('date', { ascending: true });
+
+const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const months = [1,2,3,4,5,6,7,8,9,10,11,12];
+const years  = [now.getFullYear()-1, now.getFullYear()];
+
+function formatTime(t: string | null) { return t ? t.slice(0,5) : '—'; }
+function parsePause(note: string | null) {
+  const m = note?.match(/Pause\s+(\d+)\s*Min/i);
+  return m ? parseInt(m[1]) : 0;
+}
+function calcHours(ci: string | null, co: string | null, note: string | null = null): string {
+  if (!ci || !co) return '—';
+  const [ih,im] = ci.split(':').map(Number);
+  const [oh,om] = co.split(':').map(Number);
+  const m = (oh*60+om) - (ih*60+im) - parsePause(note);
+  return m > 0 ? `${Math.floor(m/60)}h ${m%60}m` : '—';
+}
+
+let totalMins = 0;
+for (const e of entries ?? []) {
+  if (e.check_in && e.check_out) {
+    const [ih,im] = e.check_in.split(':').map(Number);
+    const [oh,om] = e.check_out.split(':').map(Number);
+    const m = (oh*60+om) - (ih*60+im) - parsePause(e.note);
+    if (m > 0) totalMins += m;
+  }
+}
+---
+
+<MainLayout title={employee.full_name} user={profile}>
+  <div class="container">
+    <div class="page">
+      <div class="page__header">
+        <h1>{employee.full_name}</h1>
+        <div>
+          <a href="/boss" class="btn btn--outline">← Zurück</a>
+          <a href={`/admin/report?employee=${employeeId}&year=${year}&month=${month}`} class="btn btn--primary">📄 PDF herunterladen</a>
+        </div>
+      </div>
+
+      <div class="alert alert--info" style="margin-bottom:1.5rem">
+        {employee.email} · 📍 {employee.location ?? '—'}
+        {employee.archived && <span class="badge badge--inactive" style="margin-left:.5rem">Archiviert</span>}
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
+          <h2 class="card__title" style="margin:0">Zeiterfassung</h2>
+          <div class="month-filter">
+            <form method="GET">
+              <select name="month" onchange="this.form.submit()">
+                {months.map(m => <option value={m} selected={m === month}>{MONTH_NAMES[m-1]}</option>)}
+              </select>
+              <select name="year" onchange="this.form.submit()">
+                {years.map(y => <option value={y} selected={y === year}>{y}</option>)}
+              </select>
+            </form>
+            <span class="badge badge--active">{Math.floor(totalMins/60)}h {totalMins%60}m gesamt</span>
+          </div>
+        </div>
+
+        {entries && entries.length > 0 ? (
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr><th>Datum</th><th>Kommen</th><th>Gehen</th><th>Stunden</th><th>Bemerkung</th></tr>
+              </thead>
+              <tbody>
+                {entries.map(e => (
+                  <tr>
+                    <td>{new Date(e.date).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'})}</td>
+                    <td>{formatTime(e.check_in)}</td>
+                    <td>{formatTime(e.check_out)}</td>
+                    <td>{calcHours(e.check_in, e.check_out, e.note)}</td>
+                    <td style="color:#6b7280;font-size:.8125rem">{e.note ?? ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style="border-top:2px solid #E8EAED;background:#F8F9FA">
+                  <td colspan="3" style="padding:.75rem 1rem;font-weight:700;font-size:.875rem">Gesamt {MONTH_NAMES[month-1]} {year}</td>
+                  <td style="padding:.75rem 1rem;font-weight:700;font-size:.875rem">{Math.floor(totalMins/60)}h {totalMins%60}m</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <p style="color:#6b7280;text-align:center;padding:2rem">Keine Einträge für diesen Monat</p>
+        )}
+      </div>
+    </div>
+  </div>
+</MainLayout>

@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'employee';
+export type Role = 'admin' | 'employee' | 'boss';
 
 export type Location = 'Weisses Haus Hotel' | 'Fass und Flamme' | 'Ukrainische Hütte' | 'Bun und Fish';
 

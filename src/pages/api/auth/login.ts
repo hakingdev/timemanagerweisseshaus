@@ -48,5 +48,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     .eq('id', data.user.id)
     .single();
 
-  return redirect(profile?.role === 'admin' ? '/admin' : '/employee');
+  if (profile?.role === 'admin')    return redirect('/admin');
+  if (profile?.role === 'boss')     return redirect('/boss');
+  return redirect('/employee');
 };
