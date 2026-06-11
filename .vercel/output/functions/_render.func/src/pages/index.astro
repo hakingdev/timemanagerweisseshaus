@@ -1,9 +1,0 @@
----
-import { requireAuth } from '../lib/auth';
-
-const auth = await requireAuth(Astro.cookies);
-if (!auth) return Astro.redirect('/login');
-
-if (auth.profile.role === 'admin') return Astro.redirect('/admin');
-return Astro.redirect('/employee');
----
