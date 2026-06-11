@@ -79,6 +79,10 @@ const todayStr = now.toISOString().split('T')[0];
               <label for="check_out">Gehen</label>
               <input type="time" id="check_out" name="check_out" />
             </div>
+            <div class="form-group entry-form-grid__pause">
+              <label for="pause">Pause (Min.)</label>
+              <input type="number" id="pause" name="pause" min="0" max="120" step="5" placeholder="0" />
+            </div>
             <div class="form-group entry-form-grid__note">
               <label for="note">Bemerkung (optional)</label>
               <input type="text" id="note" name="note" placeholder="z.B. Homeoffice..." />

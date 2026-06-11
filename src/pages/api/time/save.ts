@@ -10,7 +10,10 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const date = form.get('date')?.toString() ?? '';
   const check_in = form.get('check_in')?.toString() || null;
   const check_out = form.get('check_out')?.toString() || null;
-  const note = form.get('note')?.toString().trim() || null;
+  const pauseMins = parseInt(form.get('pause')?.toString() ?? '0') || 0;
+  const noteRaw = form.get('note')?.toString().trim() || '';
+  const pausePart = pauseMins > 0 ? `Pause ${pauseMins} Min.` : '';
+  const note = [pausePart, noteRaw].filter(Boolean).join(' | ') || null;
 
   if (!date || !check_in) {
     return redirect('/employee?error=' + encodeURIComponent('Datum und Kommen-Zeit sind pflicht'));

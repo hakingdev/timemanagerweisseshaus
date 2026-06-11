@@ -596,30 +596,31 @@ table {
 // ── ENTRY FORM GRID ───────────────────────────────────────
 .entry-form-grid {
   display: grid;
-  grid-template-columns: 160px 120px 120px 1fr auto;
-  grid-template-areas: "date in out note btn";
+  grid-template-columns: 150px 110px 110px 90px 1fr auto;
+  grid-template-areas: "date in out pause note btn";
   gap: 1rem;
   align-items: end;
 
   .form-group { margin: 0; }
-  &__date { grid-area: date; }
-  &__in   { grid-area: in; }
-  &__out  { grid-area: out; }
-  &__note { grid-area: note; }
-  &__btn  {
+  &__date  { grid-area: date; }
+  &__in    { grid-area: in; }
+  &__out   { grid-area: out; }
+  &__pause { grid-area: pause; }
+  &__note  { grid-area: note; }
+  &__btn   {
     grid-area: btn;
     .btn { height: 42px; }
   }
 
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-areas: "date in out" "note note btn";
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-areas: "date in out pause" "note note note btn";
     &__btn .btn { width: 100%; height: 42px; }
   }
 
   @media (max-width: 600px) {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas: "date date" "in out" "note note" "btn btn";
+    grid-template-areas: "date date" "in out" "pause note" "btn btn";
     &__btn .btn { width: 100%; }
   }
 }
