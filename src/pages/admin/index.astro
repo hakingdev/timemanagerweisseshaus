@@ -141,6 +141,15 @@ function fmtDate(iso: string | null) {
                       ↩ Wiederherstellen
                     </button>
                   </form>
+                  <form method="POST" action="/api/admin/purge-employee">
+                    <input type="hidden" name="id" value={emp.id} />
+                    <input type="hidden" name="name" value={emp.full_name} />
+                    <button type="submit" class="btn btn--sm"
+                      style="color:#B91C1C;border:1.5px solid #FCA5A5;background:#FFF0F0"
+                      onclick={`return confirm('⚠️ ACHTUNG: ${emp.full_name} und ALLE Zeiteinträge werden unwiderruflich gelöscht!\\n\\nDieser Vorgang kann nicht rückgängig gemacht werden.\\n\\nTrotzdem löschen?')`}>
+                      🗑 Endgültig löschen
+                    </button>
+                  </form>
                 </div>
               </div>
             ))}
