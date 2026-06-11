@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/**": {
+    "dist/server/entry.mjs": {
       "maxDuration": 30
     }
   }
