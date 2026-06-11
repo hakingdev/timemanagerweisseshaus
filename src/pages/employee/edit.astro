@@ -1,0 +1,67 @@
+---
+import MainLayout from '../../layouts/MainLayout.astro';
+import { requireAuth } from '../../lib/auth';
+
+const auth = await requireAuth(Astro.cookies);
+if (!auth) return Astro.redirect('/login');
+if (auth.profile.role === 'admin') return Astro.redirect('/admin');
+
+const { profile, client } = auth;
+const entryId = Astro.url.searchParams.get('entry') ?? '';
+const year    = Astro.url.searchParams.get('year') ?? '';
+const month   = Astro.url.searchParams.get('month') ?? '';
+
+const { data: entry } = await client
+  .from('time_entries')
+  .select('*')
+  .eq('id', entryId)
+  .eq('employee_id', profile.id)
+  .single();
+
+if (!entry) return Astro.redirect('/employee');
+
+function formatTime(t: string | null) { return t ? t.slice(0, 5) : ''; }
+---
+
+<MainLayout title="Eintrag bearbeiten" user={profile}>
+  <div class="container">
+    <div class="page">
+      <div class="page__header">
+        <h1>Eintrag bearbeiten</h1>
+        <a href={`/employee?year=${year}&month=${month}`} class="btn btn--outline">← Zurück</a>
+      </div>
+
+      <div class="alert alert--info" style="margin-bottom:1.5rem;font-size:.875rem">
+        Änderungen werden im Administrationsprotokoll erfasst.
+      </div>
+
+      <div class="card" style="max-width:500px">
+        <form method="POST" action="/api/time/edit-entry">
+          <input type="hidden" name="id" value={entry.id} />
+          <input type="hidden" name="year" value={year} />
+          <input type="hidden" name="month" value={month} />
+          <div class="form-group">
+            <label>Datum</label>
+            <input type="date" name="date" required value={entry.date} />
+          </div>
+          <div class="form-group">
+            <label>Kommen (Beginn)</label>
+            <input type="time" name="check_in" value={formatTime(entry.check_in)} />
+          </div>
+          <div class="form-group">
+            <label>Gehen (Ende)</label>
+            <input type="time" name="check_out" value={formatTime(entry.check_out)} />
+          </div>
+          <div class="form-group">
+            <label>Bemerkung</label>
+            <input type="text" name="note" value={entry.note ?? ''} placeholder="optional..." />
+          </div>
+          <div style="display:flex;gap:1rem;justify-content:flex-end">
+            <a href={`/employee?year=${year}&month=${month}`} class="btn btn--outline">Abbrechen</a>
+            <button type="submit" class="btn btn--success">✓ Speichern</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</MainLayout>

@@ -1,0 +1,41 @@
+---
+import '../styles/global.scss';
+
+interface Props {
+  title?: string;
+  user?: { full_name: string; role: string; email: string } | null;
+}
+
+const { title = 'Zeiterfassung', user } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} – Zeiterfassung</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  {user && (
+    <nav class="navbar">
+      <a href={user.role === 'admin' ? '/admin' : '/employee'} class="navbar__brand">
+        <span class="navbar__brand-dot"></span>
+        <span class="navbar__brand-text">Weisses Haus GmbH</span>
+      </a>
+      <div class="navbar__nav">
+        <span class="navbar__user">
+          {user.full_name}
+          <span class={`badge badge--${user.role}`} style="margin-left:.4rem">{user.role === 'admin' ? 'Admin' : 'Mitarbeiter'}</span>
+        </span>
+        <a href="/api/auth/logout" class="btn btn--outline btn--sm">Abmelden</a>
+      </div>
+    </nav>
+  )}
+  <main>
+    <slot />
+  </main>
+</body>
+</html>
