@@ -108,6 +108,7 @@ const todayStr = now.toISOString().split('T')[0];
               </select>
             </form>
             <span class="badge badge--active">Gesamt: {Math.floor(totalMinutes/60)}h {totalMinutes%60}m</span>
+            <a href={`/api/time/generate-pdf?year=${year}&month=${month}`} class="btn btn--outline btn--sm" target="_blank">📄 PDF herunterladen</a>
           </div>
         </div>
 
