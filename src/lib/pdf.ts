@@ -18,7 +18,7 @@ export async function generateMonthlyPDF(
   month: number
 ): Promise<Uint8Array> {
   const pkg = await import('jspdf');
-  const jsPDF = (pkg as any).default ?? pkg;
+  const jsPDF = (pkg as any).jsPDF ?? (pkg as any).default ?? pkg;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const pageW  = 210;
