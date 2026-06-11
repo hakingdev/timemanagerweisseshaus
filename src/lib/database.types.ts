@@ -15,6 +15,8 @@ export interface Profile {
   full_name: string;
   role: Role;
   location: Location;
+  archived: boolean;
+  archived_at: string | null;
   created_at: string;
 }
 

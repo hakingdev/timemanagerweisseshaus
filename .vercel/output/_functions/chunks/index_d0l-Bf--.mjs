@@ -1,0 +1,76 @@
+import { c as createComponent } from './astro-component_D_SWUnKz.mjs';
+import 'piccolore';
+import { k as renderTemplate, o as renderComponent, m as maybeRenderHead, h as addAttribute } from './entrypoint_BbBt-a-r.mjs';
+import { $ as $$MainLayout } from './MainLayout_CmLEontu.mjs';
+import { r as requireAuth } from './auth_BkhGAYOe.mjs';
+
+var __freeze = Object.freeze;
+var __defProp = Object.defineProperty;
+var __template = (cooked, raw) => __freeze(__defProp(cooked, "raw", { value: __freeze(cooked.slice()) }));
+var _a;
+const $$Index = createComponent(async ($$result, $$props, $$slots) => {
+  const Astro2 = $$result.createAstro($$props, $$slots);
+  Astro2.self = $$Index;
+  const auth = await requireAuth(Astro2.cookies, "admin");
+  if (!auth) return Astro2.redirect("/login");
+  const { client, profile } = auth;
+  const employeeId = Astro2.params.id;
+  const { data: employee } = await client.from("profiles").select("*").eq("id", employeeId).single();
+  if (!employee) return Astro2.redirect("/admin");
+  const now = /* @__PURE__ */ new Date();
+  const year = parseInt(Astro2.url.searchParams.get("year") ?? String(now.getFullYear()));
+  const month = parseInt(Astro2.url.searchParams.get("month") ?? String(now.getMonth() + 1));
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const monthEnd = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  const { data: entries } = await client.from("time_entries").select("*").eq("employee_id", employeeId).gte("date", monthStart).lt("date", monthEnd).order("date", { ascending: true });
+  const MONTH_NAMES = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const years = [now.getFullYear() - 1, now.getFullYear()];
+  function formatTime(t) {
+    return t ? t.slice(0, 5) : "";
+  }
+  function parsePause(note) {
+    const m = note?.match(/Pause\s+(\d+)\s*Min/i);
+    return m ? parseInt(m[1]) : 0;
+  }
+  function calcHours(ci, co, note = null) {
+    if (!ci || !co) return "—";
+    const [ih, im] = ci.split(":").map(Number);
+    const [oh, om] = co.split(":").map(Number);
+    const m = oh * 60 + om - (ih * 60 + im) - parsePause(note);
+    return m > 0 ? `${Math.floor(m / 60)}h ${m % 60}m` : "—";
+  }
+  let totalMins = 0;
+  for (const e of entries ?? []) {
+    if (e.check_in && e.check_out) {
+      const [ih, im] = e.check_in.split(":").map(Number);
+      const [oh, om] = e.check_out.split(":").map(Number);
+      const m = oh * 60 + om - (ih * 60 + im) - parsePause(e.note);
+      if (m > 0) totalMins += m;
+    }
+  }
+  const msg = Astro2.url.searchParams.get("msg");
+  const error = Astro2.url.searchParams.get("error");
+  const todayStr = now.toISOString().split("T")[0];
+  return renderTemplate(_a || (_a = __template(["", " <script>\n(function() {\n  var bar    = document.getElementById('bulk-bar');\n  var form   = document.getElementById('bulk-form');\n  var idsIn  = document.getElementById('bulk-ids');\n  var countEl= document.getElementById('bulk-count');\n  var selAll = document.getElementById('select-all');\n  var cancel = document.getElementById('bulk-cancel');\n  var cbs    = document.querySelectorAll('.row-cb');\n\n  function update() {\n    var checked = document.querySelectorAll('.row-cb:checked');\n    var ids = [];\n    checked.forEach(function(cb) { ids.push(cb.value); });\n    idsIn.value = ids.join(',');\n    countEl.textContent = ids.length + ' ausgewählt';\n    bar.style.display = ids.length > 0 ? 'block' : 'none';\n    // highlight rows\n    cbs.forEach(function(cb) {\n      cb.closest('tr').style.background = cb.checked ? '#eff6ff' : '';\n    });\n  }\n\n  cbs.forEach(function(cb) { cb.addEventListener('change', update); });\n\n  selAll.addEventListener('change', function() {\n    cbs.forEach(function(cb) { cb.checked = selAll.checked; });\n    update();\n  });\n\n  cancel.addEventListener('click', function() {\n    cbs.forEach(function(cb) { cb.checked = false; });\n    selAll.checked = false;\n    update();\n  });\n\n  form.addEventListener('submit', function(e) {\n    var ids = idsIn.value;\n    if (!ids) { e.preventDefault(); return; }\n    if (!confirm(countEl.textContent + ' Einträge aktualisieren?')) e.preventDefault();\n  });\n})();\n<\/script>"])), renderComponent($$result, "MainLayout", $$MainLayout, { "title": employee.full_name, "user": profile }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="container"> <div class="page"> <div class="page__header"> <h1>${employee.full_name}</h1> <div style="display:flex;gap:.75rem"> <a href="/admin" class="btn btn--outline">← Zurück</a> <a${addAttribute(`/admin/report?employee=${employeeId}&year=${year}&month=${month}`, "href")} class="btn btn--primary">📄 PDF herunterladen</a> </div> </div> ${msg && renderTemplate`<div class="alert alert--success" style="margin-bottom:1rem">${msg}</div>`} ${error && renderTemplate`<div class="alert alert--error" style="margin-bottom:1rem">${error}</div>`} <div class="alert alert--info" style="margin-bottom:1.5rem"> ${employee.email} · <span class="badge badge--employee">Mitarbeiter</span> · 📍 ${employee.location ?? "—"} </div> <!-- Magic generator --> <div class="card" style="margin-bottom:1.5rem; border:2px solid #1a56db"> <h2 class="card__title" style="color:#1a56db">Monatsplan automatisch generieren</h2> <p style="font-size:.875rem;color:#6b7280;margin-bottom:1rem">
+Stunden eingeben — das System verteilt sie gleichmässig auf alle Arbeitstage (Mo–Fr), gerundet auf 15 Minuten.
+</p> <form method="POST" action="/api/admin/generate-month"> <input type="hidden" name="employee_id"${addAttribute(employeeId, "value")}> <input type="hidden" name="year"${addAttribute(year, "value")}> <input type="hidden" name="month"${addAttribute(month, "value")}> <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto; gap:1rem; align-items:end"> <div class="form-group" style="margin:0"> <label>Arbeitsbeginn</label> <input type="time" name="start_time" value="09:00" required> </div> <div class="form-group" style="margin:0"> <label>Arbeitsende</label> <input type="time" name="end_time" value="17:00" required> </div> <div class="form-group" style="margin:0"> <label>Pause (Minuten)</label> <input type="number" name="break_minutes" value="30" min="0" max="120" step="15"> </div> <div class="form-group" style="margin:0"> <label>Vorhandene Einträge</label> <select name="overwrite"> <option value="false">Beibehalten</option> <option value="true">Überschreiben</option> </select> </div> <button type="submit" class="btn btn--primary" style="margin-bottom:.05rem" onclick="return confirm('Monatsplan generieren?')">
+Generieren
+</button> </div> </form> </div> <!-- Add entry --> <div class="card" style="margin-bottom:1.5rem"> <h2 class="card__title">Eintrag hinzufügen</h2> <form method="POST" action="/api/admin/save-entry"> <input type="hidden" name="employee_id"${addAttribute(employeeId, "value")}> <input type="hidden" name="year"${addAttribute(year, "value")}> <input type="hidden" name="month"${addAttribute(month, "value")}> <div style="display:grid; grid-template-columns:1fr 1fr 1fr 2fr auto; gap:1rem; align-items:end"> <div class="form-group" style="margin:0"> <label>Datum</label> <input type="date" name="date" required${addAttribute(todayStr, "value")}> </div> <div class="form-group" style="margin:0"> <label>Kommen</label> <input type="time" name="check_in"> </div> <div class="form-group" style="margin:0"> <label>Gehen</label> <input type="time" name="check_out"> </div> <div class="form-group" style="margin:0"> <label>Bemerkung</label> <input type="text" name="note" placeholder="optional..."> </div> <button type="submit" class="btn btn--primary" style="margin-bottom:.05rem">Hinzufügen</button> </div> </form> </div> <!-- Table --> <div class="card"> <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.75rem"> <h2 class="card__title" style="margin:0">Zeiterfassung</h2> <div class="month-filter"> <form method="GET"> <select name="month" onchange="this.form.submit()"> ${months.map((m) => renderTemplate`<option${addAttribute(m, "value")}${addAttribute(m === month, "selected")}>${MONTH_NAMES[m - 1]}</option>`)} </select> <select name="year" onchange="this.form.submit()"> ${years.map((y) => renderTemplate`<option${addAttribute(y, "value")}${addAttribute(y === year, "selected")}>${y}</option>`)} </select> </form> <span class="badge badge--active">${Math.floor(totalMins / 60)}h ${totalMins % 60}m gesamt</span> </div> </div> ${entries && entries.length > 0 ? renderTemplate`<div class="table-wrapper"> <table id="entries-table"> <thead> <tr> <th style="width:2.5rem"><input type="checkbox" id="select-all" title="Alle auswählen"></th> <th>Datum</th><th>Kommen</th><th>Gehen</th><th>Stunden</th><th>Bemerkung</th><th>Aktionen</th> </tr> </thead> <tbody> ${entries.map((e) => renderTemplate`<tr${addAttribute(e.id, "data-id")}> <td><input type="checkbox" class="row-cb"${addAttribute(e.id, "value")}></td> <td>${new Date(e.date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })}</td> <td>${formatTime(e.check_in) || "—"}</td> <td>${formatTime(e.check_out) || "—"}</td> <td>${calcHours(e.check_in, e.check_out, e.note)}</td> <td style="color:#6b7280;font-size:.8125rem">${e.note ?? ""}</td> <td> <div style="display:flex;gap:.4rem"> <a${addAttribute(`/admin/employees/${employeeId}/edit?entry=${e.id}&year=${year}&month=${month}`, "href")} class="btn btn--outline btn--sm">✏️ Bearbeiten</a> <form method="POST" action="/api/admin/delete-entry" style="display:inline"> <input type="hidden" name="id"${addAttribute(e.id, "value")}> <input type="hidden" name="employee_id"${addAttribute(employeeId, "value")}> <input type="hidden" name="year"${addAttribute(year, "value")}> <input type="hidden" name="month"${addAttribute(month, "value")}> <button type="submit" class="btn btn--outline btn--sm" onclick="return confirm('Eintrag löschen?')" style="color:#e02424;border-color:#e02424">✕</button> </form> </div> </td> </tr>`)} </tbody> <tfoot> <tr style="border-top:2px solid #d1d5db;background:#f9fafb"> <td></td> <td colspan="3" style="padding:.75rem 1rem;font-weight:700;font-size:.875rem">Gesamt ${MONTH_NAMES[month - 1]} ${year}</td> <td style="padding:.75rem 1rem;font-weight:700;font-size:.875rem">${Math.floor(totalMins / 60)}h ${totalMins % 60}m</td> <td colspan="2"></td> </tr> </tfoot> </table> </div>` : renderTemplate`<p style="color:#6b7280;text-align:center;padding:2rem">Keine Einträge für diesen Monat</p>`} </div> </div> </div>  <div id="bulk-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1a56db;color:#fff;padding:.875rem 1.5rem;z-index:100;box-shadow:0 -2px 12px rgba(0,0,0,.2)"> <form method="POST" action="/api/admin/bulk-update" id="bulk-form"> <input type="hidden" name="employee_id"${addAttribute(employeeId, "value")}> <input type="hidden" name="year"${addAttribute(year, "value")}> <input type="hidden" name="month"${addAttribute(month, "value")}> <input type="hidden" name="ids" id="bulk-ids" value=""> <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;max-width:900px;margin:0 auto"> <span id="bulk-count" style="font-weight:700;white-space:nowrap">0 ausgewählt</span> <div style="display:flex;align-items:center;gap:.5rem"> <label style="font-size:.875rem;white-space:nowrap">Kommen</label> <input type="time" name="check_in" style="padding:.3rem .5rem;border-radius:6px;border:none;color:#111;width:7rem"> </div> <div style="display:flex;align-items:center;gap:.5rem"> <label style="font-size:.875rem;white-space:nowrap">Gehen</label> <input type="time" name="check_out" style="padding:.3rem .5rem;border-radius:6px;border:none;color:#111;width:7rem"> </div> <div style="display:flex;align-items:center;gap:.5rem"> <label style="font-size:.875rem;white-space:nowrap">Bemerkung</label> <input type="text" name="note" placeholder="optional…" style="padding:.3rem .5rem;border-radius:6px;border:none;color:#111;width:10rem"> </div> <div style="display:flex;gap:.5rem;margin-left:auto"> <button type="button" id="bulk-cancel" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;padding:.4rem 1rem;border-radius:6px;cursor:pointer">Abbrechen</button> <button type="submit" style="background:#fff;color:#1a56db;font-weight:700;padding:.4rem 1rem;border-radius:6px;border:none;cursor:pointer">✓ Speichern</button> </div> </div> </form> </div> ` }));
+}, "/Users/admin/Documents/time manager/src/pages/admin/employees/[id]/index.astro", void 0);
+
+const $$file = "/Users/admin/Documents/time manager/src/pages/admin/employees/[id]/index.astro";
+const $$url = "/admin/employees/[id]";
+
+const _page = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: $$Index,
+  file: $$file,
+  url: $$url
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const page = () => _page;
+
+export { page };

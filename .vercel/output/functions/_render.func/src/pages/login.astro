@@ -1,0 +1,59 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+
+const isDemo = import.meta.env.PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co';
+
+// In demo mode handle login here
+if (isDemo && Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const email = form.get('email')?.toString().trim() ?? '';
+  const password = form.get('password')?.toString() ?? '';
+
+  const DEMO_USERS: Record<string, { password: string; role: string; name: string }> = {
+    'admin@weisseshaus.de': { password: 'WeissesHaus2025!', role: 'admin', name: 'Administrator' },
+  };
+
+  const user = DEMO_USERS[email];
+  if (user && user.password === password) {
+    Astro.cookies.set('demo-role', user.role, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 86400 });
+    Astro.cookies.set('demo-name', user.name, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 86400 });
+    Astro.cookies.set('demo-email', email, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 86400 });
+    return Astro.redirect('/admin');
+  } else {
+    return Astro.redirect('/login?error=' + encodeURIComponent('Ungültige E-Mail oder Passwort'));
+  }
+}
+
+const error = Astro.url.searchParams.get('error');
+---
+
+<MainLayout title="Anmelden">
+  <div class="auth-page">
+    <div class="auth-page__card">
+      <div class="auth-page__logo">
+        <div style="display:inline-flex;align-items:center;gap:.5rem;margin-bottom:1rem;padding:.5rem 1rem;background:#F1F3F4;border-radius:999px">
+          <span style="width:10px;height:10px;border-radius:50%;background:#1565D8;display:inline-block"></span>
+          <span style="font-size:.8125rem;font-weight:700;color:#3C4043;letter-spacing:.02em">WEISSES HAUS GMBH</span>
+        </div>
+        <h1 style="font-size:1.625rem">Willkommen zurück</h1>
+        <p>Melden Sie sich mit Ihren Zugangsdaten an</p>
+      </div>
+
+      {error && (
+        <div class="alert alert--error">{error}</div>
+      )}
+
+      <form method="POST" action="/api/auth/login">
+        <div class="form-group">
+          <label for="email">E-Mail-Adresse</label>
+          <input type="email" id="email" name="email" required autocomplete="email" placeholder="name@weisseshaus.de" />
+        </div>
+        <div class="form-group">
+          <label for="password">Passwort</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••" />
+        </div>
+        <button type="submit" class="btn btn--primary btn--full btn--lg">Anmelden</button>
+      </form>
+    </div>
+  </div>
+</MainLayout>

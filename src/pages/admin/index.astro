@@ -12,19 +12,31 @@ const now = new Date();
 const todayStr = now.toISOString().split('T')[0];
 
 let employees = DEMO_EMPLOYEES;
+let archivedEmployees: typeof DEMO_EMPLOYEES = [];
 let checkedInIds = new Set(['demo-emp-001', 'demo-emp-002']);
 let todayCount = 3;
 
 if (!isDemo) {
-  const { data: dbEmployees } = await client.from('profiles').select('*').eq('role', 'employee').order('full_name');
-  employees = dbEmployees ?? [];
+  const { data: allEmployees } = await client
+    .from('profiles').select('*').eq('role', 'employee').order('full_name');
 
-  const { data: todayEntries } = await client.from('time_entries').select('employee_id, check_in, check_out').eq('date', todayStr);
+  const all = allEmployees ?? [];
+  employees         = all.filter(e => !e.archived);
+  archivedEmployees = all.filter(e => e.archived);
+
+  const { data: todayEntries } = await client
+    .from('time_entries').select('employee_id, check_in, check_out').eq('date', todayStr);
   checkedInIds = new Set((todayEntries ?? []).filter(e => e.check_in && !e.check_out).map(e => e.employee_id));
   todayCount = (todayEntries ?? []).length;
 }
 
-const msg = Astro.url.searchParams.get('msg');
+const msg   = Astro.url.searchParams.get('msg');
+const error = Astro.url.searchParams.get('error');
+
+function fmtDate(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
 ---
 
 <MainLayout title="Admin – Weisses Haus" user={profile}>
@@ -32,23 +44,20 @@ const msg = Astro.url.searchParams.get('msg');
     <div class="page">
       <div class="page__header">
         <h1>Admin-Bereich</h1>
-        <div style="display:flex;gap:.75rem">
+        <div>
           <a href="/admin/audit" class="btn btn--outline">📋 Änderungsprotokoll</a>
           <a href="/admin/employees/new" class="btn btn--primary">+ Mitarbeiter anlegen</a>
         </div>
       </div>
 
-      {msg && <div class="alert alert--success">{msg}</div>}
-      {isDemo && (
-        <div class="alert alert--info" style="margin-bottom:1.5rem">
-          Demo-Modus — Daten sind Beispieldaten. <a href="/api/auth/logout">Abmelden</a>
-        </div>
-      )}
+      {msg   && <div class="alert alert--success">{msg}</div>}
+      {error && <div class="alert alert--error">{error}</div>}
+      {isDemo && <div class="alert alert--info">Demo-Modus — Beispieldaten. <a href="/api/auth/logout">Abmelden</a></div>}
 
       <!-- Stats -->
       <div class="stats-row">
         <div class="stat-card">
-          <div class="stat-card__label">Mitarbeiter gesamt</div>
+          <div class="stat-card__label">Aktive Mitarbeiter</div>
           <div class="stat-card__value">{employees.length}</div>
         </div>
         <div class="stat-card">
@@ -61,17 +70,23 @@ const msg = Astro.url.searchParams.get('msg');
         </div>
       </div>
 
-      <!-- Employees -->
-      <div class="card">
+      <!-- Active employees -->
+      <div class="card" style="margin-bottom:1.5rem">
         <h2 class="card__title">Mitarbeiterliste</h2>
         {employees.length > 0 ? (
           <div class="employee-grid">
             {employees.map(emp => (
-              <div class="employee-card">
+              <div class="employee-card" style="position:relative">
+                <form method="POST" action="/api/admin/delete-employee" style="position:absolute;top:.75rem;right:.75rem">
+                  <input type="hidden" name="id" value={emp.id} />
+                  <button type="submit" class="emp-delete-btn" title="Archivieren"
+                    onclick="return confirm('Mitarbeiter \"' + this.dataset.name + '\" archivieren? Alle Daten bleiben erhalten.')"
+                    data-name={emp.full_name}>✕</button>
+                </form>
                 <div>
                   <div class="employee-card__name">{emp.full_name}</div>
                   <div class="employee-card__email">{emp.email}</div>
-                  <div style="font-size:.8125rem;color:#1a56db;margin-top:.2rem">📍 {emp.location ?? '—'}</div>
+                  <div style="font-size:.8125rem;color:#1565D8;margin-top:.2rem">📍 {emp.location ?? '—'}</div>
                 </div>
                 <div>
                   {checkedInIds.has(emp.id)
@@ -87,9 +102,51 @@ const msg = Astro.url.searchParams.get('msg');
             ))}
           </div>
         ) : (
-          <p style="color:#6b7280; text-align:center; padding:2rem">Noch keine Mitarbeiter angelegt</p>
+          <p style="color:#6b7280;text-align:center;padding:2rem">Keine aktiven Mitarbeiter</p>
         )}
       </div>
+
+      <!-- Archive -->
+      {archivedEmployees.length > 0 && (
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+            <h2 class="card__title" style="margin:0">
+              Archiv
+              <span class="badge badge--inactive" style="margin-left:.6rem;vertical-align:middle">{archivedEmployees.length}</span>
+            </h2>
+            <span style="font-size:.8125rem;color:#6b7280">Ausgeschiedene Mitarbeiter — Daten gesetzlich aufbewahrt</span>
+          </div>
+          <div class="archive-grid">
+            {archivedEmployees.map(emp => (
+              <div class="archive-card">
+                <div class="archive-card__top">
+                  <div>
+                    <div class="archive-card__name">{emp.full_name}</div>
+                    <div class="archive-card__email">{emp.email}</div>
+                  </div>
+                  <span class="badge badge--inactive">Archiviert</span>
+                </div>
+                <div class="archive-card__meta">
+                  <span>📍 {emp.location ?? '—'}</span>
+                  <span>Seit {fmtDate(emp.archived_at)}</span>
+                </div>
+                <div class="archive-card__actions">
+                  <a href={`/admin/employees/${emp.id}`} class="btn btn--outline btn--sm">Details</a>
+                  <a href={`/admin/report?employee=${emp.id}`} class="btn btn--outline btn--sm">📄 Bericht</a>
+                  <form method="POST" action="/api/admin/restore-employee">
+                    <input type="hidden" name="id" value={emp.id} />
+                    <button type="submit" class="btn btn--sm"
+                      style="color:#15803D;border:1.5px solid #86EFAC;background:#F0FDF4"
+                      onclick="return confirm('Mitarbeiter wiederherstellen?')">
+                      ↩ Wiederherstellen
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   </div>
 </MainLayout>
