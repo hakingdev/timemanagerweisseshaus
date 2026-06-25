@@ -9,13 +9,14 @@ const { client, profile } = auth;
 
 const now = new Date();
 const employeeId = Astro.url.searchParams.get('employee') ?? '';
-const year = parseInt(Astro.url.searchParams.get('year') ?? String(now.getFullYear()));
+const year  = parseInt(Astro.url.searchParams.get('year')  ?? String(now.getFullYear()));
 const month = parseInt(Astro.url.searchParams.get('month') ?? String(now.getMonth() + 1));
 
 const { data: employees } = await client
   .from('profiles')
   .select('*')
   .eq('role', 'employee')
+  .eq('archived', false)
   .order('full_name');
 
 const selectedEmployee = employees?.find(e => e.id === employeeId) ?? employees?.[0] ?? null;
@@ -27,61 +28,118 @@ const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','Aug
   <div class="container">
     <div class="page">
       <div class="page__header">
-        <h1>Monatsberichte (PDF)</h1>
+        <h1>Berichte & Diagramme</h1>
         <a href="/admin" class="btn btn--outline">← Zurück</a>
       </div>
 
-      <div class="card" style="max-width:600px">
-        <h2 class="card__title">Arbeitszeitnachweis generieren</h2>
-        <form method="GET" action="/api/admin/generate-pdf" target="_blank">
-          <div class="form-group">
-            <label for="employee">Mitarbeiter</label>
-            <select id="employee" name="employee" required>
-              {employees?.map(emp => (
-                <option value={emp.id} selected={emp.id === selectedEmployee?.id}>{emp.full_name}</option>
-              ))}
-            </select>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-            <div class="form-group">
-              <label for="month">Monat</label>
-              <select id="month" name="month">
-                {Array.from({length:12},(_,i)=>i+1).map(m=>(
-                  <option value={m} selected={m===month}>{MONTH_NAMES[m-1]}</option>
-                ))}
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="year">Jahr</label>
-              <select id="year" name="year">
-                {[now.getFullYear()-1, now.getFullYear()].map(y=>(
-                  <option value={y} selected={y===year}>{y}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <button type="submit" class="btn btn--primary btn--full btn--lg">📄 PDF herunterladen</button>
-        </form>
-      </div>
+      <div class="report-grid">
 
-      <!-- Batch export all employees -->
-      <div class="card" style="max-width:600px; margin-top:1.5rem">
-        <h2 class="card__title">Alle Mitarbeiter exportieren</h2>
-        <p style="color:#6b7280;font-size:.875rem;margin-bottom:1rem">
-          Generiert für jeden Mitarbeiter eine separate PDF-Datei.
-        </p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-          {employees?.map(emp => (
-            <a
-              href={`/api/admin/generate-pdf?employee=${emp.id}&month=${month}&year=${year}`}
-              target="_blank"
-              class="btn btn--outline"
-            >
-              📄 {emp.full_name}
-            </a>
-          ))}
+        <!-- PDF -->
+        <div class="card">
+          <h2 class="card__title">📄 Arbeitszeitnachweis (PDF)</h2>
+          <form method="GET" action="/api/admin/generate-pdf" target="_blank">
+            <div class="form-group">
+              <label for="employee">Mitarbeiter</label>
+              <select id="employee" name="employee" required>
+                {employees?.map(emp => (
+                  <option value={emp.id} selected={emp.id === selectedEmployee?.id}>{emp.full_name}</option>
+                ))}
+              </select>
+            </div>
+            <div class="month-selects">
+              <div class="form-group">
+                <label for="month">Monat</label>
+                <select id="month" name="month">
+                  {Array.from({length:12},(_,i)=>i+1).map(m=>(
+                    <option value={m} selected={m===month}>{MONTH_NAMES[m-1]}</option>
+                  ))}
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="year">Jahr</label>
+                <select id="year" name="year">
+                  {[now.getFullYear()-1, now.getFullYear()].map(y=>(
+                    <option value={y} selected={y===year}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn--primary btn--full btn--lg">PDF herunterladen</button>
+          </form>
         </div>
+
+        <!-- Excel Gantt -->
+        <div class="card">
+          <h2 class="card__title">📊 Arbeitszeit-Diagramm (Excel)</h2>
+          <p style="color:#6b7280;font-size:.875rem;margin-bottom:1.25rem">
+            Wähle Mitarbeiter und Monat — Excel enthält Tabelle + Gantt-Diagramm.
+          </p>
+          <form method="GET" action="/api/admin/generate-excel" target="_blank" id="excel-form">
+            <div class="month-selects">
+              <div class="form-group">
+                <label for="xmonth">Monat</label>
+                <select id="xmonth" name="month">
+                  {Array.from({length:12},(_,i)=>i+1).map(m=>(
+                    <option value={m} selected={m===month}>{MONTH_NAMES[m-1]}</option>
+                  ))}
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="xyear">Jahr</label>
+                <select id="xyear" name="year">
+                  {[now.getFullYear()-1, now.getFullYear()].map(y=>(
+                    <option value={y} selected={y===year}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Mitarbeiter auswählen</label>
+              <div class="emp-checklist">
+                <div class="emp-checklist__header">
+                  <input type="checkbox" id="select-all" />
+                  <label for="select-all">Alle auswählen</label>
+                </div>
+                {employees?.map(emp => (
+                  <div class="emp-checklist__item">
+                    <input type="checkbox" name="employees" value={emp.id} id={`emp-${emp.id}`} />
+                    <label for={`emp-${emp.id}`}>
+                      <span class="emp-checklist__item-name">{emp.full_name}</span>
+                      <span class="emp-checklist__item-loc">📍 {emp.location ?? '—'}</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--full btn--lg">📊 Excel herunterladen</button>
+          </form>
+        </div>
+
       </div>
     </div>
   </div>
 </MainLayout>
+
+<script is:inline>
+  const selectAll = document.getElementById('select-all');
+  const checkboxes = document.querySelectorAll('input[name="employees"]');
+
+  selectAll.addEventListener('change', () => {
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+  });
+
+  checkboxes.forEach(cb => cb.addEventListener('change', () => {
+    const all = [...checkboxes];
+    selectAll.checked = all.every(c => c.checked);
+    selectAll.indeterminate = all.some(c => c.checked) && !all.every(c => c.checked);
+  }));
+
+  document.getElementById('excel-form').addEventListener('submit', function(e) {
+    if (![...checkboxes].some(c => c.checked)) {
+      e.preventDefault();
+      alert('Bitte mindestens einen Mitarbeiter auswählen.');
+    }
+  });
+</script>
