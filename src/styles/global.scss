@@ -754,3 +754,106 @@ table {
     margin-top: .5rem;
   }
 }
+
+// ── REPORT PAGE ───────────────────────────────────────────
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+}
+
+.month-selects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+}
+
+.emp-checklist {
+  border: 1.5px solid $gray-200;
+  border-radius: $radius;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    background: $gray-50;
+    border-bottom: 1.5px solid $gray-200;
+
+    input[type="checkbox"] {
+      width: 16px !important;
+      height: 16px !important;
+      flex-shrink: 0;
+      accent-color: $blue;
+      cursor: pointer;
+      padding: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    label {
+      display: inline !important;
+      font-size: .8125rem !important;
+      font-weight: 600 !important;
+      color: $gray-700 !important;
+      cursor: pointer !important;
+      margin: 0 !important;
+      text-transform: uppercase !important;
+      letter-spacing: .03em;
+    }
+  }
+
+  &__item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid $gray-100;
+    transition: background .1s;
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: $gray-50; }
+
+    input[type="checkbox"] {
+      width: 16px !important;
+      height: 16px !important;
+      flex-shrink: 0;
+      accent-color: $blue;
+      cursor: pointer;
+      padding: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    label {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: .125rem;
+      cursor: pointer;
+      margin: 0 !important;
+      min-width: 0;
+      flex: 1;
+      text-transform: none !important;
+      letter-spacing: 0 !important;
+    }
+  }
+
+  &__item-name {
+    font-size: .9375rem;
+    font-weight: 500;
+    color: $gray-900;
+  }
+
+  &__item-loc {
+    font-size: .75rem;
+    color: $blue;
+  }
+}
